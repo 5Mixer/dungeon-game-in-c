@@ -1,0 +1,57 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Debug Build",
+			"command": "make",
+			"options": {
+				"cwd": "${workspaceFolder}/build/Debug"
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"type": "shell",
+			"label": "Build",
+			"command": "mv",
+			"args": [
+				"${workspaceFolder}/build/Debug/Project",
+				"${workspaceFolder}/Deployment"
+			],
+			"dependsOn": [
+				"Debug Build"
+			]
+		},
+		{
+			"type": "shell",
+			"label": "Remove *.o",
+			"command": "rm *.o",
+			"options": {
+				"cwd": "${workspaceFolder}/build/Debug"
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"type": "shell",
+			"label": "Clean Build",
+			"command": "node Kinc/make --debug",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"dependsOn": [
+				"Remove *.o"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}

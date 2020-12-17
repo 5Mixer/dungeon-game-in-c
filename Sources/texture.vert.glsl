@@ -1,6 +1,6 @@
 #version 450
 
-in vec3 pos;
+in vec2 pos;
 in vec2 tex;
 
 out vec2 texcoord;
