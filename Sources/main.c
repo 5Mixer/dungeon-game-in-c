@@ -18,8 +18,8 @@
 #include "map.h"
 #include "graphics.h"
 
-static kinc_g4_shader_t vertexShader;
-static kinc_g4_shader_t fragmentShader;
+static kinc_g4_shader_t vertex_shader;
+static kinc_g4_shader_t fragment_shader;
 static kinc_g4_pipeline_t pipeline;
 static kinc_g4_vertex_buffer_t vertices;
 static kinc_g4_index_buffer_t indices;
@@ -74,7 +74,7 @@ int kickstart(int argc, char **argv) {
 		kinc_file_reader_read(&reader, data, size);
 		kinc_file_reader_close(&reader);
 
-		kinc_g4_shader_init(&vertexShader, data, size, KINC_G4_SHADER_TYPE_VERTEX);
+		kinc_g4_shader_init(&vertex_shader, data, size, KINC_G4_SHADER_TYPE_VERTEX);
 	}
 
 	{
@@ -85,7 +85,7 @@ int kickstart(int argc, char **argv) {
 		kinc_file_reader_read(&reader, data, size);
 		kinc_file_reader_close(&reader);
 
-		kinc_g4_shader_init(&fragmentShader, data, size, KINC_G4_SHADER_TYPE_FRAGMENT);
+		kinc_g4_shader_init(&fragment_shader, data, size, KINC_G4_SHADER_TYPE_FRAGMENT);
 	}
 
 	kinc_g4_vertex_structure_t structure;
@@ -95,8 +95,8 @@ int kickstart(int argc, char **argv) {
 	kinc_g4_pipeline_init(&pipeline);
 	pipeline.input_layout[0] = &structure;
 	pipeline.input_layout[1] = NULL;
-	pipeline.vertex_shader = &vertexShader;
-	pipeline.fragment_shader = &fragmentShader;
+	pipeline.vertex_shader = &vertex_shader;
+	pipeline.fragment_shader = &fragment_shader;
 	kinc_g4_pipeline_compile(&pipeline);
 
 	texunit = kinc_g4_pipeline_get_texture_unit(&pipeline, "texsampler");
@@ -112,10 +112,10 @@ int kickstart(int argc, char **argv) {
 	int *i = kinc_g4_index_buffer_lock(&indices);
 
 	game_graphics_t *graphics = allocate(sizeof(game_graphics_t));
-	graphics->vertexBufferOffset = 0;
-	graphics->indexBufferOffset = 0;
-	graphics->vertexBuffer = v;
-	graphics->indexBuffer = i;
+	graphics->vertex_buffer_offset = 0;
+	graphics->index_buffer_offset = 0;
+	graphics->vertex_buffer = v;
+	graphics->index_buffer = i;
 
 	game_map_render(map, graphics);
 	

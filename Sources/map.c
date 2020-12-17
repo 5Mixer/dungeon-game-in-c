@@ -1,6 +1,6 @@
 #include "map.h"
 
-uint8_t can_place_room(game_map_room_t *room, game_map_t *map, game_map_room_t *existingRooms, int existingRoomCount) {
+static uint8_t can_place_room(game_map_room_t *room, game_map_t *map, game_map_room_t *existingRooms, int existingRoomCount) {
     if (room->x < 1 || room->y < 1 || room->x + room->width > MAP_WIDTH || room->y + room->height > MAP_HEIGHT)
         return 0;
 
@@ -13,7 +13,7 @@ uint8_t can_place_room(game_map_room_t *room, game_map_t *map, game_map_room_t *
     }
     return 1;
 }
-game_map_room_t get_room_extension(game_map_room_t from_room) {
+static game_map_room_t get_room_extension(game_map_room_t from_room) {
     int extension_side = randi(4);
 
     game_map_room_t new_room;
@@ -54,12 +54,12 @@ game_map_t *create_map() {
         }
     }
 
-    vec2_t startPosition = { MAP_WIDTH/2, MAP_HEIGHT/2 };
+    vec2_t start_position = { MAP_WIDTH/2, MAP_HEIGHT/2 };
     game_map_room_t *rooms = allocate(sizeof(game_map_room_t) * MAX_ROOMS);
     int room_count = 0;
     int failed_iterations = 0;
 
-    game_map_room_t new_room = { startPosition.x, startPosition.y, 12+randi(6), 12+randi(6)};
+    game_map_room_t new_room = { start_position.x, start_position.y, 12+randi(6), 12+randi(6)};
 
     while (room_count < MAX_ROOMS && failed_iterations < 400) {
         if (can_place_room(&new_room, map, rooms, room_count)) {
