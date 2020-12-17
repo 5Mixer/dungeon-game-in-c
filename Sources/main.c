@@ -34,7 +34,7 @@ static void update() {
 	kinc_g4_set_pipeline(&pipeline);
 
 	kinc_matrix3x3_t matrix = kinc_matrix3x3_identity();
-	const float pixel_scale = 4.f;
+	const float pixel_scale = 1.f;
 	kinc_matrix3x3_set(&matrix, 0, 2, -2.f);
 	kinc_matrix3x3_set(&matrix, 1, 2, 2.f);
 	kinc_matrix3x3_set(&matrix, 0, 0, pixel_scale/(float)kinc_width());
@@ -52,6 +52,7 @@ static void update() {
 }
 
 int kickstart(int argc, char **argv) {
+	srand(time(0));
 	kinc_init("TextureTest", 1024, 768, NULL, NULL);
 	kinc_set_update_callback(update);
 
