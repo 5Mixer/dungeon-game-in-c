@@ -10,12 +10,13 @@
 #include <kinc/io/filereader.h>
 #include <kinc/system.h>
 
-#include <assert.h>
-#include <stdlib.h>
+#include "memory.h"
 #include <stdio.h>
 #include <math.h>
 
 #include "math.h"
+#include "map.h"
+#include "graphics.h"
 
 static kinc_g4_shader_t vertexShader;
 static kinc_g4_shader_t fragmentShader;
@@ -26,65 +27,11 @@ static kinc_g4_texture_t texture;
 static kinc_g4_texture_unit_t texunit;
 static kinc_g4_constant_location_t offset;
 
-#define HEAP_SIZE 1024 * 1024
-static uint8_t *heap = NULL;
-static size_t heap_top = 0;
-
-static void *allocate(size_t size) {
-	size_t old_top = heap_top;
-	heap_top += size;
-	printf("Allocation: heap_top at %d, have used %2.2f%%\n", heap_top, ((double)heap_top/((double)HEAP_SIZE))*100);
-	assert(heap_top <= HEAP_SIZE);
-	return &heap[old_top];
-}
-
-void create_sprite(int x, int y, int spriteIndex, float* vertexBuffer, int *vertexBufferOffset, int* indexBuffer, int *indexBufferOffset) {
-	const int spriteWidth = 16;
-	const int spriteHeight = 16;
-
-	int startIndex = (*vertexBufferOffset)/4;
-
-	// Bottom left
-	vertexBuffer[(*vertexBufferOffset)++] = x;// - spriteWidth;
-	vertexBuffer[(*vertexBufferOffset)++] = y;// - spriteHeight;
-	vertexBuffer[(*vertexBufferOffset)++] = (float)spriteIndex/16.0f;
-	vertexBuffer[(*vertexBufferOffset)++] = 1.f/16.0f;
-
-	// Bottom right
-	vertexBuffer[(*vertexBufferOffset)++] = x + spriteWidth;
-	vertexBuffer[(*vertexBufferOffset)++] = y;// - spriteHeight;
-	vertexBuffer[(*vertexBufferOffset)++] = ((float)spriteIndex+1)/16.0f;
-	vertexBuffer[(*vertexBufferOffset)++] = 1.f/16.0f;
-
-	// Top right
-	vertexBuffer[(*vertexBufferOffset)++] = x + spriteWidth;
-	vertexBuffer[(*vertexBufferOffset)++] = y + spriteHeight;
-	vertexBuffer[(*vertexBufferOffset)++] = ((float)spriteIndex+1)/16.0f;
-	vertexBuffer[(*vertexBufferOffset)++] = 0.f/16.0f;
-
-	// Top left
-	vertexBuffer[(*vertexBufferOffset)++] = x;// - spriteWidth;
-	vertexBuffer[(*vertexBufferOffset)++] = y + spriteHeight;
-	vertexBuffer[(*vertexBufferOffset)++] = (float)spriteIndex/16.0f;
-	vertexBuffer[(*vertexBufferOffset)++] = 0.f/16.0f;
-
-	indexBuffer[(*indexBufferOffset)++] = startIndex+0;
-	indexBuffer[(*indexBufferOffset)++] = startIndex+1;
-	indexBuffer[(*indexBufferOffset)++] = startIndex+2;
-	indexBuffer[(*indexBufferOffset)++] = startIndex+0;
-	indexBuffer[(*indexBufferOffset)++] = startIndex+2;
-	indexBuffer[(*indexBufferOffset)++] = startIndex+3;
-}
-
 static void update() {
 	kinc_g4_begin(0);
 	kinc_g4_clear(KINC_G4_CLEAR_COLOR, 0, 0.0f, 0);
 
 	kinc_g4_set_pipeline(&pipeline);
-
-	// kinc_matrix3x3_t rotation_matrix = kinc_matrix3x_rotation_z((float)kinc_time());
-
-	// float sprite_offset = sin((float)kinc_time()) * 30.f;
 
 	kinc_matrix3x3_t matrix = kinc_matrix3x3_identity();
 	const float pixel_scale = 4.f;
@@ -93,8 +40,6 @@ static void update() {
 	kinc_matrix3x3_set(&matrix, 0, 0, pixel_scale/(float)kinc_width());
 	kinc_matrix3x3_set(&matrix, 1, 1, -pixel_scale/(float)kinc_height());
 
-	// kinc_matrix3x3_t m = kinc_matrix3x3_multiply(&rotation_matrix, &matrix);
-	
 	kinc_g4_set_matrix3(offset, &matrix);
 	kinc_g4_set_vertex_buffer(&vertices);
 	kinc_g4_set_index_buffer(&indices);
@@ -110,8 +55,7 @@ int kickstart(int argc, char **argv) {
 	kinc_init("TextureTest", 1024, 768, NULL, NULL);
 	kinc_set_update_callback(update);
 
-	heap = (uint8_t *)malloc(HEAP_SIZE);
-	assert(heap != NULL);
+	init_memory();
 
 	{
 		kinc_image_t image;
@@ -157,9 +101,8 @@ int kickstart(int argc, char **argv) {
 	texunit = kinc_g4_pipeline_get_texture_unit(&pipeline, "texsampler");
 	offset = kinc_g4_pipeline_get_constant_location(&pipeline, "mvp");
 
-	int grid_width = 10;
-	int grid_height = 10;
-	int sprites = grid_width * grid_height;
+	int sprites = 100 * 100 + 10000;
+	game_map_t *map = create_map();
 
 	kinc_g4_vertex_buffer_init(&vertices, 4*sprites, &structure, KINC_G4_USAGE_DYNAMIC, 0);
 	float *v = kinc_g4_vertex_buffer_lock_all(&vertices);
@@ -167,23 +110,20 @@ int kickstart(int argc, char **argv) {
 	kinc_g4_index_buffer_init(&indices, 6*sprites, KINC_G4_INDEX_BUFFER_FORMAT_32BIT);
 	int *i = kinc_g4_index_buffer_lock(&indices);
 
-	int *vertexBufferOffset = allocate(sizeof(int));
-	int *indexBufferOffset = allocate(sizeof(int));
-	*vertexBufferOffset = 0;
-	*indexBufferOffset = 0;
+	game_graphics_t *graphics = allocate(sizeof(game_graphics_t));
+	graphics->vertexBufferOffset = 0;
+	graphics->indexBufferOffset = 0;
+	graphics->vertexBuffer = v;
+	graphics->indexBuffer = i;
 
-	for (int x = 0; x < grid_width; x++) {
-		for (int y = 0; y < grid_height; y++) {
-			create_sprite(x*16, y*16, y>grid_width/2 ? 5 : 6, v, vertexBufferOffset, i, indexBufferOffset);
-		}
-	}
-
+	game_map_render(map, graphics);
+	
 	kinc_g4_vertex_buffer_unlock_all(&vertices);
 	kinc_g4_index_buffer_unlock(&indices);
 
 	kinc_start();
 
-	free(heap);
+	free_memory();
 
 	return 0;
 }
